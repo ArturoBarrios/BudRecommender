@@ -1,4 +1,10 @@
 <script setup>
+
+definePageMeta({
+  middleware: ['authenticated']
+})
+
+
 import RecommendationModal from '../components/RecommendationModal.vue'
 import StrainCard from '../components/StrainCard.vue'
 import StrainSearchBar from '../components/StrainSearchBar.vue'
@@ -22,9 +28,16 @@ function toggleFavorite(id) {
 }
 
 const strains = computed(() => {
-  let filtered = allStrains.value?.filter((strain) =>
-    strain.stores.some((store) => store.name === selectedStore.value)
-  ) || []
+  console.log("allStrains.value", allStrains.value)
+  let filtered = (allStrains.value || []).map(strain => {
+  const storeMatch = strain.stores.find(store => store.name === selectedStore.value)
+  const offer = storeMatch?.offer || null
+
+  return {
+    ...strain,
+    specialOffer: offer,
+  }
+}).filter(strain => strain.stores.some(store => store.name === selectedStore.value))
 
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()

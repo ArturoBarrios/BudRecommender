@@ -20,14 +20,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRuntimeConfig } from '#app'
+import { useSession } from '~/composables/useSession'
 
+const { session, fetchSession } = useSession()
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const router = useRouter()
 const config = useRuntimeConfig()
+
+onMounted(async () => {
+  await fetchSession()
+  if (session.value) {
+    router.push('/')
+  }
+})
 
 async function submitLogin() {
   error.value = ''
@@ -36,9 +45,12 @@ async function submitLogin() {
     const response = await $fetch(`${config.public.serverUrl}/auth/login`, {
       method: 'POST',
       body: { email: email.value, password: password.value },
+      credentials: 'include',
     })
 
     console.log('✅ Logged in user:', response.user)
+
+    await fetchSession()
     router.push('/')
   } catch (err) {
     error.value = err?.data?.error || err.message || 'Login failed'

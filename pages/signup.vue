@@ -14,15 +14,15 @@
         Create Account
       </button>
       <div v-if="error" class="mt-4 text-red-600 text-sm">{{ error }}</div>
-<div v-if="success" class="mt-4 text-green-600 text-sm">Account created successfully!</div>
-
+      <div v-if="success" class="mt-4 text-green-600 text-sm">Account created successfully!</div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRuntimeConfig, useRouter } from '#app'
+import { useSession } from '~/composables/useSession'
 
 const email = ref('')
 const password = ref('')
@@ -31,6 +31,14 @@ const success = ref(false)
 
 const config = useRuntimeConfig()
 const router = useRouter()
+const { session, fetchSession } = useSession()
+
+onMounted(async () => {
+  await fetchSession()
+  if (session.value) {
+    router.push('/')
+  }
+})
 
 async function submitSignup() {
   error.value = ''
@@ -40,19 +48,13 @@ async function submitSignup() {
     const response = await $fetch(`${config.public.serverUrl}/auth/signup`, {
       method: 'POST',
       body: { email: email.value, password: password.value },
+      credentials: 'include',
     })
 
     console.log('✅ Signed up user:', response.user)
     success.value = true
 
-    // Automatically log them in
-    const loginResponse = await $fetch(`${config.public.serverUrl}/auth/login`, {
-      method: 'POST',
-      body: { email: email.value, password: password.value },
-    })
-
-    console.log('✅ Auto-login successful:', loginResponse.user)
-    router.push('/')
+    router.push('/login')
   } catch (err) {
     error.value = err?.data?.error || err.message || 'Signup failed'
     console.error('❌ Signup error:', error.value)

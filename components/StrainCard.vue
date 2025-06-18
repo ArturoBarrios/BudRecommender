@@ -18,7 +18,13 @@ function toggle() {
       <span v-else>🤍</span>
     </button>
 
+    <!-- Special Offer -->
+    
     <h2 class="text-xl font-semibold">{{ strain.name }}</h2>
+    <h3 v-if="strain.brand?.name" class="text-sm text-gray-500 italic">{{ strain.brand.name }}</h3>
+    <div v-if="strain.specialOffer" class=" bg-yellow-300 text-yellow-900 px-2 py-1 text-xs font-semibold rounded">
+      🎉 {{ strain.specialOffer }}
+    </div>
     <p class="text-sm text-gray-600 italic">{{ strain.strainType }}</p>
     <p class="text-sm text-gray-700 mt-1">THC: {{ strain.thc }}%</p>
     <p class="text-sm text-gray-700">Price: {{ strain.price }}</p>
