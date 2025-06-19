@@ -1,4 +1,6 @@
 <script setup>
+import { useSession } from '~/composables/useSession'
+
 const props = defineProps({
   showModal: Boolean,
   isLoading: Boolean,
@@ -6,6 +8,34 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['open', 'close', 'submit'])
+
+const allTerpenes = [
+  'Limonene', 'Myrcene', 'Caryophyllene', 'Linalool',
+  'Pinene', 'Humulene', 'Terpinolene', 'Ocimene',
+]
+
+const { session } = useSession()
+
+const selectedLikedIds = ref(new Set())
+const selectedDislikedIds = ref(new Set())
+
+const likedPrefs = computed(() =>
+  session.value?.preferences?.filter(p => p.liked && p.strain) || []
+)
+const dislikedPrefs = computed(() =>
+  session.value?.preferences?.filter(p => !p.liked && p.strain) || []
+)
+
+watch(() => session.value, () => {
+  selectedLikedIds.value = new Set(likedPrefs.value.map(p => p.strain.id))
+  selectedDislikedIds.value = new Set(dislikedPrefs.value.map(p => p.strain.id))
+})
+
+function handleSubmit() {
+  form.selectedStrainIds = Array.from(selectedLikedIds)
+  form.excludedStrainIds = Array.from(selectedDislikedIds)
+  emit('submit')
+}
 </script>
 
 <template>
@@ -75,10 +105,83 @@ const emit = defineEmits(['open', 'close', 'submit'])
         <option value="sleep">Sleep</option>
         <option value="daytime">Daytime</option>
       </select>
+
+      <!-- Terpenes -->
+      <div>
+        <label class="block font-semibold mb-1">Preferred Terpenes</label>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="terp in allTerpenes"
+            :key="terp"
+            @click.prevent="
+              form.terpenes = form.terpenes || [];
+              form.terpenes.includes(terp)
+                ? form.terpenes = form.terpenes.filter(t => t !== terp)
+                : form.terpenes.push(terp)
+            "
+            :class="[
+              'px-2 py-1 rounded border text-xs',
+              form.terpenes?.includes(terp)
+                ? 'bg-purple-200 border-purple-400'
+                : 'bg-white border-gray-300'
+            ]"
+          >
+            {{ terp }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Favorites -->
+      <div v-if="likedPrefs.length">
+        <label class="block font-semibold mb-1">Based on Favorites</label>
+        <div class="space-y-1">
+          <div
+            v-for="pref in likedPrefs"
+            :key="pref.id"
+            class="flex items-center justify-between border rounded px-2 py-1"
+          >
+            <span class="truncate">{{ pref.strain.name }}</span>
+            <button
+              @click.prevent="
+                selectedLikedIds.has(pref.strain.id)
+                  ? selectedLikedIds.delete(pref.strain.id)
+                  : selectedLikedIds.add(pref.strain.id)
+              "
+              class="text-sm"
+            >
+              {{ selectedLikedIds.has(pref.strain.id) ? '❌' : '➕' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disliked -->
+      <div v-if="dislikedPrefs.length" class="mt-3">
+        <label class="block font-semibold mb-1">Avoid These</label>
+        <div class="space-y-1">
+          <div
+            v-for="pref in dislikedPrefs"
+            :key="pref.id"
+            class="flex items-center justify-between border rounded px-2 py-1"
+          >
+            <span class="truncate">{{ pref.strain.name }}</span>
+            <button
+              @click.prevent="
+                selectedDislikedIds.has(pref.strain.id)
+                  ? selectedDislikedIds.delete(pref.strain.id)
+                  : selectedDislikedIds.add(pref.strain.id)
+              "
+              class="text-sm"
+            >
+              {{ selectedDislikedIds.has(pref.strain.id) ? '❌' : '➕' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Text Input & Submit -->
-    <form @submit.prevent="$emit('submit')" class="z-40 flex gap-2 p-3 border-t bg-white">
+    <!-- Input + Submit -->
+    <form @submit.prevent="handleSubmit" class="z-40 flex gap-2 p-3 border-t bg-white">
       <input
         v-model="form.text"
         type="text"

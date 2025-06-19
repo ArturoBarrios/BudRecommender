@@ -9,8 +9,8 @@ import RecommendationModal from '../components/RecommendationModal.vue'
 import StrainCard from '../components/StrainCard.vue'
 import StrainSearchBar from '../components/StrainSearchBar.vue'
 
-const config = useRuntimeConfig()
-const { data: allStrains, pending, error } = await useFetch(`${config.public.serverUrl}/strains/get-strains`)
+import { useStrains } from '~/composables/useStrains'
+const { allStrains, pending, error } = useStrains()
 
 const selectedStore = ref('Monroe Ohio')
 const showModal = ref(false)

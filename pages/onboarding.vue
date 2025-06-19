@@ -1,12 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import StrainCard from '~/components/StrainCard.vue'
+import { useStrains } from '~/composables/useStrains'
 
-const config = useRuntimeConfig()
-const { data: allStrains, pending, error } = await useFetch(`${config.public.serverUrl}/strains/get-strains`)
+const { allStrains, pending, error } = useStrains()
 
 const favorites = ref(new Set())
 
-function toggleFavorite(id) {
+function toggleFavorite(id: string) {
   if (favorites.value.has(id)) {
     favorites.value.delete(id)
   } else {
