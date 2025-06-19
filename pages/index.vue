@@ -1,16 +1,26 @@
 <script setup>
 
+
 definePageMeta({
   middleware: ['authenticated']
 })
 
+import { useStrainStore } from '~/stores/strains'
+
+const strainStore = useStrainStore()
+await strainStore.fetchStrains()
+
+
+const {
+  allStrains,
+  brandOptions,
+  pending,
+  error,
+} = storeToRefs(strainStore) // keeps reactivity in templates
 
 import RecommendationModal from '../components/RecommendationModal.vue'
 import StrainCard from '../components/StrainCard.vue'
 import StrainSearchBar from '../components/StrainSearchBar.vue'
-
-import { useStrains } from '~/composables/useStrains'
-const { allStrains, pending, error } = useStrains()
 
 const selectedStore = ref('Monroe Ohio')
 const showModal = ref(false)
@@ -56,6 +66,7 @@ const strains = computed(() => {
 })
 
 const form = reactive({
+  brand: '',
   strainType: '',
   thcTier: '',
   priceTier: '',
