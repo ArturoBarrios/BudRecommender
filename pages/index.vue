@@ -1,33 +1,36 @@
 <script setup>
-
-
 definePageMeta({
   middleware: ['authenticated']
 })
 
 import { useStrainStore } from '~/stores/strains'
-
 const strainStore = useStrainStore()
 await strainStore.fetchStrains()
-
 
 const {
   allStrains,
   brandOptions,
+  storeOptions,
   pending,
   error,
-} = storeToRefs(strainStore) // keeps reactivity in templates
+} = storeToRefs(strainStore)
 
 import RecommendationModal from '../components/RecommendationModal.vue'
 import StrainCard from '../components/StrainCard.vue'
 import StrainSearchBar from '../components/StrainSearchBar.vue'
 
-const selectedStore = ref('Monroe Ohio')
+const selectedStore = ref('')
 const showModal = ref(false)
 const isLoadingRecommendation = ref(false)
 const searchQuery = ref('')
 const recommendations = ref([])
 const favorites = ref(new Set())
+
+watchEffect(() => {
+  if (!selectedStore.value && storeOptions.value.length) {
+    selectedStore.value = storeOptions.value[0]
+  }
+})
 
 function toggleFavorite(id) {
   if (favorites.value.has(id)) {
@@ -38,20 +41,22 @@ function toggleFavorite(id) {
 }
 
 const strains = computed(() => {
-  console.log("allStrains.value", allStrains.value)
-  let filtered = (allStrains.value || []).map(strain => {
-  const storeMatch = strain.stores.find(store => store.name === selectedStore.value)
-  const offer = storeMatch?.offer || null
-
-  return {
-    ...strain,
-    specialOffer: offer,
-  }
-}).filter(strain => strain.stores.some(store => store.name === selectedStore.value))
+  let filtered = (allStrains.value || [])
+    .map(strain => {
+      const storeMatch = strain.stores.find(store => store.name === selectedStore.value)
+      const offer = storeMatch?.offer || null
+      return {
+        ...strain,
+        specialOffer: offer,
+      }
+    })
+    .filter(strain =>
+      strain.stores.some(store => store.name === selectedStore.value)
+    )
 
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
-    filtered = filtered.filter((strain) => strain.name.toLowerCase().includes(q))
+    filtered = filtered.filter(strain => strain.name.toLowerCase().includes(q))
   }
 
   if (recommendations.value.length > 0) {
@@ -78,7 +83,7 @@ const form = reactive({
 async function submitRecommendation() {
   try {
     isLoadingRecommendation.value = true
-    const response = await $fetch(`${config.public.serverUrl}/strains/recommend`, {
+    const response = await $fetch(`${useRuntimeConfig().public.serverUrl}/strains/recommend`, {
       method: 'POST',
       body: { ...form },
     })
@@ -96,7 +101,6 @@ async function submitRecommendation() {
 </script>
 
 <template>
-  <!-- Modal -->
   <RecommendationModal
     :show-modal="showModal"
     :is-loading="isLoadingRecommendation"
@@ -106,7 +110,6 @@ async function submitRecommendation() {
     @submit="submitRecommendation"
   />
 
-  <!-- Admin Strain List -->
   <div class="p-6 max-w-6xl mx-auto">
     <h1 class="text-3xl font-bold mb-4">Admin: Strain List</h1>
 
@@ -114,20 +117,16 @@ async function submitRecommendation() {
     <div class="mb-4">
       <label class="mr-2 font-semibold">Store:</label>
       <select v-model="selectedStore" class="border rounded px-3 py-2">
-        <option>Monroe Ohio</option>
+        <option v-for="store in storeOptions" :key="store">{{ store }}</option>
       </select>
     </div>
 
-    <!-- Search -->
     <StrainSearchBar v-model="searchQuery" />
 
-    <!-- Loading & Error -->
     <div v-if="pending" class="text-gray-500">Loading strains...</div>
     <div v-else-if="error" class="text-red-600">Failed to load strains.</div>
 
-    <!-- Strain list -->
     <div v-else class="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
-      <!-- Recommendations Section -->
       <template v-if="recommendations.length">
         <div class="col-span-full mb-2">
           <h2 class="text-xl font-semibold text-green-700">Recommendation</h2>
@@ -185,7 +184,6 @@ async function submitRecommendation() {
         </div>
       </template>
 
-      <!-- Non-recommended strains -->
       <StrainCard
         v-for="strain in strains.filter(s => !recommendations.map(r => r.name).includes(s.name))"
         :key="strain.id"

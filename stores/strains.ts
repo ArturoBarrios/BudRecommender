@@ -17,16 +17,25 @@ export const useStrainStore = defineStore('strains', () => {
       )
   })
 
+  const storeOptions = computed(() => {
+    const seen = new Set<string>()
+    return allStrains.value
+      .flatMap(strain => strain.stores.map(store => store.name))
+      .filter((storeName): storeName is string =>
+        !!storeName && !seen.has(storeName) && seen.add(storeName)
+      )
+  })
+
   const fetchStrains = async () => {
-    if (allStrains.value.length) return // avoid refetching
+    if (allStrains.value.length) return
     try {
       pending.value = true
       const result = await $fetch(`${config.public.serverUrl}/strains/get-strains`)
       allStrains.value = result
 
-      // ✅ Log after data is loaded
       console.log("Fetched allStrains:", allStrains.value)
       console.log("Computed brandOptions:", brandOptions.value)
+      console.log("Computed storeOptions:", storeOptions.value)
     } catch (err) {
       error.value = err
     } finally {
@@ -40,5 +49,6 @@ export const useStrainStore = defineStore('strains', () => {
     error,
     fetchStrains,
     brandOptions,
+    storeOptions,
   }
 })
