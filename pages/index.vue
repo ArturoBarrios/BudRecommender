@@ -81,6 +81,7 @@ const form = reactive({
 })
 
 async function submitRecommendation() {
+  console.log('📤 Submitting recommendation form:', form)
   try {
     isLoadingRecommendation.value = true
     const response = await $fetch(`${useRuntimeConfig().public.serverUrl}/strains/recommend`, {
@@ -107,7 +108,7 @@ async function submitRecommendation() {
     :form="form"
     @open="showModal = true"
     @close="showModal = false"
-    @submit="submitRecommendation"
+    @recommend="submitRecommendation"
   />
 
   <div class="p-6 max-w-6xl mx-auto">

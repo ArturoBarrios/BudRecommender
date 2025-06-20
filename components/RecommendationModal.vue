@@ -1,32 +1,36 @@
 <script setup>
 import { useSession } from '~/composables/useSession'
-
 import { useStrainStore } from '~/stores/strains'
 
-const { brandOptions } = storeToRefs(useStrainStore())
-
+// Store props
 const props = defineProps({
   showModal: Boolean,
   isLoading: Boolean,
   form: Object,
 })
 
-const emit = defineEmits(['open', 'close', 'submit'])
+// Destructure props for local access
+const { form } = props
 
-const allTerpenes = [
-  'Limonene', 'Myrcene', 'Caryophyllene', 'Linalool',
-  'Pinene', 'Humulene', 'Terpinolene', 'Ocimene',
-]
+// Emit events
+const emit = defineEmits(['open', 'close', 'recommend'])
 
+const { brandOptions } = storeToRefs(useStrainStore())
 const { session } = useSession()
 
 const selectedLikedIds = ref(new Set())
 const selectedDislikedIds = ref(new Set())
 const showAdvanced = ref(false)
 
+const allTerpenes = [
+  'Limonene', 'Myrcene', 'Caryophyllene', 'Linalool',
+  'Pinene', 'Humulene', 'Terpinolene', 'Ocimene',
+]
+
 const likedPrefs = computed(() =>
   session.value?.preferences?.filter(p => p.liked && p.strain) || []
 )
+
 const dislikedPrefs = computed(() =>
   session.value?.preferences?.filter(p => !p.liked && p.strain) || []
 )
@@ -37,11 +41,13 @@ watch(() => session.value, () => {
 })
 
 function handleSubmit() {
+  console.log('📨 Modal submitting with form:', form)
   form.selectedStrainIds = Array.from(selectedLikedIds)
   form.excludedStrainIds = Array.from(selectedDislikedIds)
-  emit('submit')
+  emit('recommend')
 }
 </script>
+
 
 <template>
   <!-- Trigger Button -->
