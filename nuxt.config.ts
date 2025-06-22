@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
   runtimeConfig: {
     public: {
-      serverUrl: process.env.SERVER,
+      serverUrl: process.env.BUDRECOMMENDER_BE_URL,
     }
   }
 })
