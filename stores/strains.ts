@@ -9,13 +9,25 @@ export const useStrainStore = defineStore('strains', () => {
   const error = ref(null)
 
   const brandOptions = computed(() => {
-    const seen = new Set<string>()
-    return allStrains.value
-      .map(strain => strain.brand?.name)
-      .filter((brandName): brandName is string =>
-        !!brandName && !seen.has(brandName) && seen.add(brandName)
-      )
-  })
+  const map = new Map<string, { id: string; name: string; rank: number | null; userRank: number | null }>()
+  for (const strain of allStrains.value) {
+    const b = strain.brand
+    if (b?.id && b.name) {
+      if (!map.has(b.id)) {
+        map.set(b.id, { 
+          id: b.id, 
+          name: b.name, 
+          rank: b.rank ?? null, 
+          userRank: b.userRank ?? null // new property here
+        })
+      }
+    }
+  }
+  return Array.from(map.values())
+})
+
+
+  
 
   const terpeneOptions = computed(() => {
     const seen = new Set<string>()

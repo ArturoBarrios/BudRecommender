@@ -1,23 +1,18 @@
 <script setup>
-definePageMeta({
-  middleware: ['authenticated']
-})
+definePageMeta({ middleware: ['authenticated'] })
 
+import NavTabs from '~/components/NavTabs.vue'
 import { useStrainStore } from '~/stores/strains'
+import RecommendationModal from '~/components/RecommendationModal.vue'
+import StrainCard from '~/components/StrainCard.vue'
+import StrainSearchBar from '~/components/StrainSearchBar.vue'
+import { ref, reactive, computed, watchEffect } from 'vue'
+import { storeToRefs } from 'pinia'
+
 const strainStore = useStrainStore()
 await strainStore.fetchStrains()
 
-const {
-  allStrains,
-  brandOptions,
-  storeOptions,
-  pending,
-  error,
-} = storeToRefs(strainStore)
-
-import RecommendationModal from '../components/RecommendationModal.vue'
-import StrainCard from '../components/StrainCard.vue'
-import StrainSearchBar from '../components/StrainSearchBar.vue'
+const { allStrains, storeOptions, pending, error } = storeToRefs(strainStore)
 
 const selectedStore = ref('')
 const showModal = ref(false)
@@ -41,12 +36,11 @@ function toggleFavorite(id) {
 }
 
 const strains = computed(() => {
-  let filtered = (allStrains.value || [])
-    .filter(strain => strain.store?.name === selectedStore.value)
+  let filtered = (allStrains.value || []).filter(strain => strain.store?.name === selectedStore.value)
 
   filtered = filtered.map(strain => ({
     ...strain,
-    specialOffer: null // Placeholder; update if you reintroduce offers
+    specialOffer: null,
   }))
 
   if (searchQuery.value.trim()) {
@@ -56,10 +50,7 @@ const strains = computed(() => {
 
   if (recommendations.value.length > 0) {
     const recNames = recommendations.value.map(r => r.name)
-    return [
-      ...filtered.filter(s => recNames.includes(s.name)),
-      ...filtered.filter(s => !recNames.includes(s.name)),
-    ]
+    return [...filtered.filter(s => recNames.includes(s.name)), ...filtered.filter(s => !recNames.includes(s.name))]
   }
 
   return filtered
@@ -76,28 +67,26 @@ const form = reactive({
 })
 
 async function submitRecommendation() {
-  console.log('📤 Submitting recommendation form:', form)
   try {
     isLoadingRecommendation.value = true
     const response = await $fetch(`${useRuntimeConfig().public.serverUrl}/strains/recommend`, {
       method: 'POST',
       body: { ...form },
     })
-
     const parsed = JSON.parse(response.recommendations)
     recommendations.value = parsed
-    console.log('📦 AI Recommendation Results:', parsed)
     showModal.value = false
   } catch (err) {
-    console.error('❌ Failed to fetch recommendation:', err)
+    console.error('Failed to fetch recommendation:', err)
   } finally {
     isLoadingRecommendation.value = false
   }
 }
 </script>
 
-
 <template>
+  <NavTabs />
+
   <RecommendationModal
     :show-modal="showModal"
     :is-loading="isLoadingRecommendation"
@@ -110,11 +99,10 @@ async function submitRecommendation() {
   <div class="p-6 max-w-6xl mx-auto">
     <h1 class="text-3xl font-bold mb-4">Admin: Strain List</h1>
 
-    <!-- Store filter -->
     <div class="mb-4">
       <label class="mr-2 font-semibold">Store:</label>
       <select v-model="selectedStore" class="border rounded px-3 py-2">
-        <option v-for="store in storeOptions" :key="store">{{ store }}</option>
+        <option v-for="store in storeOptions" :key="store" :value="store">{{ store }}</option>
       </select>
     </div>
 
