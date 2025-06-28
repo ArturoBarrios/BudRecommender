@@ -1,3 +1,4 @@
+// useStrains.ts
 import { useRuntimeConfig } from '#app'
 import { computed } from 'vue'
 
@@ -13,10 +14,16 @@ export function useStrains() {
     const seen = new Set<string>()
     return (allStrains.value || [])
       .map(strain => strain.brand)
-      .filter((brand): brand is string => {
-        return typeof brand === 'string' && !seen.has(brand) && seen.add(brand)
-      })
+      .filter((brand): brand is string => typeof brand === 'string' && !seen.has(brand) && seen.add(brand))
   })
 
-  return { allStrains, brandOptions, pending, error, refresh }
+  const terpeneOptions = computed(() => {
+    const seen = new Set<string>()
+    return (allStrains.value || [])
+      .flatMap(strain => strain.terpenes || [])
+      .map(st => st.terpene?.name)
+      .filter((name): name is string => typeof name === 'string' && !seen.has(name) && seen.add(name))
+  })
+
+  return { allStrains, brandOptions, terpeneOptions, pending, error, refresh }
 }

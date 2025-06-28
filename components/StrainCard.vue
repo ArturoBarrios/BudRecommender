@@ -1,15 +1,59 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useSession } from '~/composables/useSession'
+import { useStrainStore } from '~/stores/strains'
 import StrainPreferenceModal from '~/components/StrainPreferenceModal.vue'
+import { useUpsertStrain } from '~/composables/useUpsertStrain'
+const { upsertStrain } = useUpsertStrain()
 
 const props = defineProps({
   strain: Object,
 })
 
 const { session } = useSession()
-
 const showModal = ref(false)
+const isEditing = ref(false)
+
+const strainStore = useStrainStore()
+const terpeneOptions = computed(() => strainStore.terpeneOptions)
+
+const editableTerpenes = ref(
+  props.strain.terpenes?.length
+    ? props.strain.terpenes.map(t => ({ ...t })) // clone to avoid mutating prop
+    : terpeneOptions.value.map(name => ({
+        name,
+        percentage: 0,
+        id: name,
+      }))
+)
+
+async function handleStrainUpdate(updatedStrain) {
+  console.log('Updating strain:', updatedStrain)
+  const result = await upsertStrain(updatedStrain)
+  if (result.success) {
+    console.log('🎉 Strain saved!')
+  } else {
+    console.error('❌ Could not save strain:', result.error)
+  }
+}
+
+async function saveTerpenes() {
+  const nonZeroTerpenes = editableTerpenes.value
+    .filter(t => parseFloat(t.percentage) > 0)
+    .map(t => ({
+      name: t.name,
+      percentage: parseFloat(t.percentage),
+      id: t.id,
+    }))
+
+  const updatedStrain = {
+    ...props.strain,
+    terpenes: nonZeroTerpenes,
+  }
+
+  await handleStrainUpdate(updatedStrain)
+  isEditing.value = false
+}
 
 const isFavorite = computed(() => {
   if (!session.value?.preferences?.length) return false
@@ -34,8 +78,11 @@ function handlePreferenceUpdate(updatedPreference) {
     session.value.preferences.push(updatedPreference)
   }
 }
-
 </script>
+
+
+
+
 
 <template>
   <div class="border rounded-xl p-4 shadow-sm hover:shadow-md transition relative">
@@ -61,14 +108,59 @@ function handlePreferenceUpdate(updatedPreference) {
     <p class="text-sm text-gray-700">Price: {{ strain.price }}</p>
     <p class="text-sm text-gray-700">Weight: {{ strain.weight }}</p>
 
-    <div v-if="strain.terpenes?.length" class="mt-2 text-xs text-gray-600">
-      <p class="font-medium">Terpenes:</p>
-      <ul class="list-disc list-inside">
-        <li v-for="terpene in strain.terpenes" :key="terpene.id">
-          {{ terpene.name }} - {{ terpene.percentage }}%
-        </li>
-      </ul>
+    <div class="mt-2 text-xs text-gray-600">
+  <p class="font-medium">Terpenes:</p>
+
+  <template v-if="!isEditing">
+    <ul v-if="strain.terpenes?.length" class="list-disc list-inside">
+      <li v-for="terpene in strain.terpenes" :key="terpene.id">
+        {{ terpene.name }} - {{ terpene.percentage }}%
+      </li>
+    </ul>
+    <button
+      class="mt-1 text-blue-600 underline text-xs hover:text-blue-800"
+      @click="isEditing = true"
+    >
+      ✏️ Edit Terpenes
+    </button>
+  </template>
+
+  <template v-else>
+    <div
+      v-for="terpene in editableTerpenes"
+      :key="terpene.id"
+      class="flex items-center space-x-2 mt-1"
+    >
+      <span class="w-28 truncate">{{ terpene.name }}</span>
+      <input
+        type="number"
+        v-model="terpene.percentage"
+        class="border px-1 py-0.5 text-xs w-20 rounded"
+        min="0"
+        max="100"
+        step="0.1"
+      />
+      <span class="text-xs text-gray-500">%</span>
     </div>
+
+    <div class="mt-2 space-x-2">
+  <button
+    @click="saveTerpenes"
+    class="bg-green-600 text-white text-xs px-3 py-1 rounded hover:bg-green-700"
+  >
+    Save
+  </button>
+  <button
+    @click="isEditing = false"
+    class="text-xs text-gray-500 underline"
+  >
+    Cancel
+  </button>
+</div>
+
+  </template>
+</div>
+
 
     <StrainPreferenceModal
       :strain="strain"

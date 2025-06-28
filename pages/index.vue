@@ -42,17 +42,12 @@ function toggleFavorite(id) {
 
 const strains = computed(() => {
   let filtered = (allStrains.value || [])
-    .map(strain => {
-      const storeMatch = strain.stores.find(store => store.name === selectedStore.value)
-      const offer = storeMatch?.offer || null
-      return {
-        ...strain,
-        specialOffer: offer,
-      }
-    })
-    .filter(strain =>
-      strain.stores.some(store => store.name === selectedStore.value)
-    )
+    .filter(strain => strain.store?.name === selectedStore.value)
+
+  filtered = filtered.map(strain => ({
+    ...strain,
+    specialOffer: null // Placeholder; update if you reintroduce offers
+  }))
 
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
@@ -100,6 +95,7 @@ async function submitRecommendation() {
   }
 }
 </script>
+
 
 <template>
   <RecommendationModal

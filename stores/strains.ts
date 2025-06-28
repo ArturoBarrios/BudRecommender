@@ -17,10 +17,18 @@ export const useStrainStore = defineStore('strains', () => {
       )
   })
 
+  const terpeneOptions = computed(() => {
+    const seen = new Set<string>()
+    return allStrains.value
+      .flatMap(strain => strain.terpenes || [])
+      .map(st => st.terpene?.name || st.name)
+      .filter((name): name is string => !!name && !seen.has(name) && seen.add(name))
+  })
+
   const storeOptions = computed(() => {
     const seen = new Set<string>()
     return allStrains.value
-      .flatMap(strain => strain.stores.map(store => store.name))
+      .map(strain => strain.store?.name)
       .filter((storeName): storeName is string =>
         !!storeName && !seen.has(storeName) && seen.add(storeName)
       )
@@ -32,10 +40,7 @@ export const useStrainStore = defineStore('strains', () => {
       pending.value = true
       const result = await $fetch(`${config.public.serverUrl}/strains/get-strains`)
       allStrains.value = result
-
       console.log("Fetched allStrains:", allStrains.value)
-      console.log("Computed brandOptions:", brandOptions.value)
-      console.log("Computed storeOptions:", storeOptions.value)
     } catch (err) {
       error.value = err
     } finally {
@@ -50,5 +55,6 @@ export const useStrainStore = defineStore('strains', () => {
     fetchStrains,
     brandOptions,
     storeOptions,
+    terpeneOptions,
   }
 })
