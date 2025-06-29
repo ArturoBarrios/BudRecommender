@@ -1,6 +1,6 @@
 export const useStrainPreference = () => {
   const { session } = useSession()
-  console.log('Current session:', session.value)
+  // console.log('Current session:', session.value)
 
   async function createOrUpdatePreference({
     strainId,

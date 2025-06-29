@@ -1,4 +1,5 @@
 // useStrains.ts
+//remove(onboarding still using this composable)
 import { useRuntimeConfig } from '#app'
 import { computed } from 'vue'
 
