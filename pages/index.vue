@@ -1,7 +1,6 @@
 <script setup>
 definePageMeta({ middleware: ['authenticated'] })
 
-import NavTabs from '~/components/NavTabs.vue'
 import { useStrainStore } from '~/stores/strains'
 import RecommendationModal from '~/components/RecommendationModal.vue'
 import StrainCard from '~/components/StrainCard.vue'
@@ -86,8 +85,7 @@ async function submitRecommendation() {
 }
 </script>
 
-<template>
-  <NavTabs />
+<template>  
 
   <RecommendationModal
     :show-modal="showModal"
