@@ -13,6 +13,10 @@ const strainStore = useStrainStore()
 
 const props = defineProps({
   strain: Object,
+  recommendations: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['preference-updated'])
@@ -33,6 +37,17 @@ const editableTerpenes = computed(() => {
   return props.strain.terpenes?.length
     ? props.strain.terpenes.map(t => ({ ...t }))
     : strainStore.terpeneOptions.map(name => ({ name, percentage: 0, id: name }))
+})
+
+// Enrich recommendations with full strain info from store by matching strain name or id
+const enrichedRecommendations = computed(() => {
+  if (!props.recommendations.length) return []
+  const allStrains = strainStore.allStrains || []
+  return props.recommendations.map(rec => {
+    // Try to find full strain data by name or id
+    const fullStrain = allStrains.find(s => s.id === rec.id || s.name === rec.name)
+    return fullStrain || rec
+  })
 })
 
 async function updatePreference(value) {
@@ -208,5 +223,37 @@ function handlePreferenceUpdate(updatedPreference) {
       @close="showModal = false"
       @preference-updated="handlePreferenceUpdate"
     />
+
+    <!-- Inline Recommended Similar Strains as horizontal scroll inside this card -->
+    <div v-if="isFavorite && enrichedRecommendations.length" class="mt-4">
+      <h3 class="text-sm font-semibold mb-2 text-gray-700">Similar Strains</h3>
+      <div
+        class="flex space-x-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide"
+        style="scroll-snap-type: x mandatory;"
+      >
+        <div
+          v-for="rec in enrichedRecommendations"
+          :key="rec.id"
+          class="min-w-[180px] bg-white border rounded-xl shadow hover:shadow-md p-3 snap-center transition-all flex-shrink-0"
+          style="scroll-snap-align: center;"
+        >
+          <h4 class="font-semibold text-sm truncate">{{ rec.name }}</h4>
+          <p class="text-xs text-gray-500 italic">{{ rec.strainType }}</p>
+          <p class="text-xs text-gray-600">THC: {{ rec.thc }}%</p>
+          <p class="text-xs text-gray-600">Price: {{ rec.price }}</p>
+          <p class="text-xs text-gray-600">Weight: {{ rec.weight }}</p>
+
+          <div v-if="rec.terpenes?.length" class="mt-1 text-xs text-gray-600">
+            <p class="font-medium">Terpenes:</p>
+            <ul class="list-disc list-inside">
+              <li v-for="t in rec.terpenes" :key="t.id">
+                {{ t.name }} - {{ t.percentage }}%
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>

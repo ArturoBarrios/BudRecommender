@@ -144,22 +144,19 @@ watchEffect(async () => {
   for (const pref of likedPrefs) {
     const strain = allStrains.value.find(s => s.id === pref.strainId)
     if (strain && !alreadyFetched.has(strain.id)) {
-      
-
-      const params = {
-        strainId: strain.id,        
-      }
+      const params = { strainId: strain.id }
 
       console.log('📨 Calling fetchStrainRecommendation with params:', params)
 
       const recs = await fetchStrainRecommendation(params)
 
-      console.log("🔍 Fetched recommendations for strain:", strain.name, recs)
+      console.log(`🔍 Fetched ${recs.length} recommendations for strain: ${strain.name}`)
 
       userStrainFavorites.value.push({ strain, recommendations: recs })
     }
   }
 })
+
 
 
 

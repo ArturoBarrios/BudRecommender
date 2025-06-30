@@ -9,6 +9,7 @@ import StrainSearchBar from '~/components/StrainSearchBar.vue'
 import { ref, reactive, computed, watchEffect } from 'vue'
 import { storeToRefs } from 'pinia'
 
+
 const strainStore = useStrainStore()
 await strainStore.fetchStrains()
 
@@ -18,7 +19,6 @@ const selectedStore = ref('')
 const showModal = ref(false)
 const isLoadingRecommendation = ref(false)
 const searchQuery = ref('')
-const recommendations = ref([])
 const favorites = ref(new Set())
 
 watchEffect(() => {
@@ -26,6 +26,12 @@ watchEffect(() => {
     selectedStore.value = storeOptions.value[0]
   }
 })
+
+// Helper to get recommendations for a given strain
+function getRecommendationsForStrain(strainId) {
+  const entry = strainStore.userStrainFavorites.find(e => e.strain.id === strainId)
+  return entry ? entry.recommendations : []
+}
 
 function toggleFavorite(id) {
   if (favorites.value.has(id)) {
@@ -48,10 +54,7 @@ const strains = computed(() => {
     filtered = filtered.filter(strain => strain.name.toLowerCase().includes(q))
   }
 
-  if (recommendations.value.length > 0) {
-    const recNames = recommendations.value.map(r => r.name)
-    return [...filtered.filter(s => recNames.includes(s.name)), ...filtered.filter(s => !recNames.includes(s.name))]
-  }
+  // Don't reorder strains here; sorting by recommendations should happen in the template or StrainCard level if needed
 
   return filtered
 })
@@ -73,8 +76,7 @@ async function submitRecommendation() {
       method: 'POST',
       body: { ...form },
     })
-    const parsed = JSON.parse(response.recommendations)
-    recommendations.value = parsed
+    // Recommendation update handled elsewhere or on modal close
     showModal.value = false
   } catch (err) {
     console.error('Failed to fetch recommendation:', err)
@@ -112,67 +114,12 @@ async function submitRecommendation() {
     <div v-else-if="error" class="text-red-600">Failed to load strains.</div>
 
     <div v-else class="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
-      <template v-if="recommendations.length">
-        <div class="col-span-full mb-2">
-          <h2 class="text-xl font-semibold text-green-700">Recommendation</h2>
-          <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
-            <li v-if="form.strainType">Strain Type: <strong>{{ form.strainType }}</strong></li>
-            <li v-if="form.thcTier">
-              THC: <strong>
-                {{
-                  form.thcTier === 'low' ? '< 20%' :
-                  form.thcTier === 'mid' ? '20–25%' : '> 25%'
-                }}
-              </strong>
-            </li>
-            <li v-if="form.priceTier">
-              Price: <strong>
-                {{
-                  form.priceTier === 'low' ? '< $30' :
-                  form.priceTier === 'mid' ? '$30–$60' : '> $60'
-                }}
-              </strong>
-            </li>
-            <li v-if="form.weight">Weight: <strong>{{ form.weight }}</strong></li>
-            <li v-if="form.mood">Mood: <strong>{{ form.mood }}</strong></li>
-            <li v-if="form.text">Note: <em>"{{ form.text }}"</em></li>
-          </ul>
-        </div>
-
-        <div
-          v-for="rec in recommendations"
-          :key="'rec-' + rec.name"
-          class="border-2 border-green-500 rounded-2xl shadow-sm p-5 bg-white hover:shadow-md transition relative"
-        >
-          <button
-            @click="toggleFavorite(strains.find(s => s.name === rec.name)?.id)"
-            class="absolute top-3 right-3 text-2xl"
-          >
-            <span v-if="favorites.has(strains.find(s => s.name === rec.name)?.id)">💚</span>
-            <span v-else>🤍</span>
-          </button>
-
-          <div class="mb-2">
-            <h2 class="text-lg font-bold">{{ rec.name }}</h2>
-            <p class="text-sm text-green-600 italic">🌿 {{ rec.reason }}</p>
-          </div>
-
-          <div
-            v-for="strain in strains.filter(s => s.name === rec.name)"
-            :key="strain.id"
-            class="text-sm text-gray-700 space-y-1 mb-3"
-          >
-            <p><span class="font-medium">THC:</span> {{ strain.thc }}%</p>
-            <p><span class="font-medium">Price:</span> {{ strain.price }}</p>
-            <p><span class="font-medium">Weight:</span> {{ strain.weight }}</p>
-          </div>
-        </div>
-      </template>
-
+      <!-- Rendering StrainCard for each strain, passing recommendations per strain -->
       <StrainCard
-        v-for="strain in strains.filter(s => !recommendations.map(r => r.name).includes(s.name))"
+        v-for="strain in strains"
         :key="strain.id"
         :strain="strain"
+        :recommendations="getRecommendationsForStrain(strain.id)"
         :is-favorite="favorites.has(strain.id)"
         @toggle-favorite="toggleFavorite"
       />
