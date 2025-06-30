@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { useRuntimeConfig } from "#app";
 import { computed, ref } from "vue";
 import { useSession } from "~/composables/useSession";
+import { useStrainRecommendation } from '~/composables/useStrainRecommendation'
 
 export const useStrainStore = defineStore("strains", () => {
   const config = useRuntimeConfig();
@@ -127,6 +128,42 @@ watchEffect(() => {
     }
   };
 
+
+
+
+const userStrainFavorites = ref([]) // Array of { strain, recommendations }
+
+watchEffect(async () => {
+  if (!session.value?.preferences?.length || !allStrains.value.length) return
+
+  const { fetchStrainRecommendation } = useStrainRecommendation()
+
+  const likedPrefs = session.value.preferences.filter(p => p.liked && p.strainId)
+  const alreadyFetched = new Set(userStrainFavorites.value.map(entry => entry.strain.id))
+
+  for (const pref of likedPrefs) {
+    const strain = allStrains.value.find(s => s.id === pref.strainId)
+    if (strain && !alreadyFetched.has(strain.id)) {
+      
+
+      const params = {
+        strainId: strain.id,        
+      }
+
+      console.log('📨 Calling fetchStrainRecommendation with params:', params)
+
+      const recs = await fetchStrainRecommendation(params)
+
+      console.log("🔍 Fetched recommendations for strain:", strain.name, recs)
+
+      userStrainFavorites.value.push({ strain, recommendations: recs })
+    }
+  }
+})
+
+
+
+
   return {
     allStrains,
     pending,
@@ -136,5 +173,6 @@ watchEffect(() => {
     storeOptions,
     terpeneOptions,
     userFavoriteBrands,
+    userStrainFavorites
   };
 });

@@ -1,49 +1,43 @@
+import { useSession } from '~/composables/useSession'
+
 export const useStrainPreference = () => {
   const { session } = useSession()
-  // console.log('Current session:', session.value)
+  const config = useRuntimeConfig()
 
-  async function createOrUpdatePreference({
+  /**
+   * Set preference for a strain.
+   * Pass liked: true | false to create/update preference.
+   * Pass liked: null to remove preference.
+   */
+  async function setPreference({
     strainId,
     liked,
-    reason = '',
-    effectsFelt = [],
-    symptomRelief = [],
   }: {
     strainId: string
-    liked: boolean
-    reason?: string
-    effectsFelt?: string[]
-    symptomRelief?: string[]
+    liked: boolean | null
   }) {
-    const config = useRuntimeConfig()
-
     if (!session.value?.id) {
       console.warn('⚠️ No user session found')
       return null
     }
 
     try {
-      const response = await $fetch(`${config.public.serverUrl}/strains/create-user-strain-preference`, {
+      return await $fetch(`${config.public.serverUrl}/strains/create-user-strain-preference`, {
         method: 'POST',
         body: {
           userId: session.value.id,
           strainId,
           liked,
-          reason,
-          effectsFelt,
-          symptomRelief,
         },
         credentials: 'include',
       })
-
-      return response
     } catch (err) {
-      console.error('❌ Failed to create/update preference:', err)
+      console.error('❌ Failed to set preference:', err)
       return null
     }
   }
 
   return {
-    createOrUpdatePreference,
+    setPreference,
   }
 }

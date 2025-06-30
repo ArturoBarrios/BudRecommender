@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useStrainPreference } from '~/composables/useStrainPreference'
 import { useSession } from '~/composables/useSession'
 
@@ -10,47 +10,38 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'preference-updated'])
 
-const liked = ref(true)
-const reason = ref('')
-const effects = ref([])
-
-const allEffects = ['Happy', 'Relaxed', 'Euphoric', 'Sleepy', 'Hungry', 'Paranoid', 'Headache']
-
 const { session } = useSession()
-const { createOrUpdatePreference } = useStrainPreference()
+const { createOrUpdatePreference, removePreference } = useStrainPreference()
 
-const toggleEffect = (effect) => {
-  if (effects.value.includes(effect)) {
-    effects.value = effects.value.filter(e => e !== effect)
-  } else {
-    effects.value.push(effect)
-  }
-}
-
-async function save() {
-  if (!session.value?.id) return
-
-  const result = await createOrUpdatePreference({
-    strainId: props.strain.id,
-    liked: liked.value,
-    reason: reason.value,
-    effectsFelt: effects.value,
-    symptomRelief: [],
-  })
-
-  if (result?.success) {
-    emit('preference-updated', result.preference)
-    emit('close')
-  }
-}
+const preference = ref(null) // 'like' | 'dislike' | null
 
 watch(() => props.show, (val) => {
   if (val) {
-    liked.value = true
-    reason.value = ''
-    effects.value = []
+    preference.value = null
   }
 })
+
+async function save() {
+  if (!session.value?.id || !props.strain?.id) return
+
+  if (preference.value === null) {
+    await removePreference(props.strain.id)
+  } else {
+    const result = await createOrUpdatePreference({
+      strainId: props.strain.id,
+      liked: preference.value === 'like',
+      reason: '',
+      effectsFelt: [],
+      symptomRelief: [],
+    })
+    if (result?.success) {
+      emit('preference-updated', result.preference)
+    }
+  }
+
+  emit('close')
+}
+
 </script>
 
 <template>
